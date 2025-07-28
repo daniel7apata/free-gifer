@@ -52,6 +52,16 @@ if uploaded_files:
     with col_dim2:
         height = st.number_input("↕️ Alto (píxeles)", min_value=50, value=1000, step=50)
 
+    st.markdown("#### Zoom y Recorte")
+    zoom_factor = st.slider(
+        "🔍 Factor de Zoom (x)",
+        min_value=1.0,
+        max_value=3.0,
+        value=1.2,
+        step=0.1,
+        help="Aplica un zoom a la imagen y luego la recorta desde el centro."
+    )
+
     st.markdown("#### Animación")
     col_anim1, col_anim2 = st.columns(2)
     with col_anim1:
@@ -70,10 +80,33 @@ if uploaded_files:
     # --- 5. Botón para generar el GIF ---
     if st.button("🚀 Crear mi GIF", type="primary", use_container_width=True):
         with st.spinner("Creando GIF... ¡Esto puede tardar un momento!"):
-            # Abrir las imágenes con Pillow
-            pil_images = [Image.open(img_data) for img_data in ordered_files_data]
+            pil_images = []
+            for img_data in ordered_files_data:
+                img = Image.open(img_data)
+                
+                # Apply zoom and crop
+                original_width, original_height = img.size
+                
+                # Calculate new dimensions after zoom
+                zoomed_width = int(original_width * zoom_factor)
+                zoomed_height = int(original_height * zoom_factor)
 
-            # Redimensionar cada imagen a las dimensiones especificadas
+                # Resize image to the zoomed dimensions (this will make it larger)
+                img = img.resize((zoomed_width, zoomed_height), Image.Resampling.LANCZOS)
+                
+                # Calculate crop box to get the center
+                left = (zoomed_width - original_width) // 2
+                top = (zoomed_height - original_height) // 2
+                right = left + original_width
+                bottom = top + original_height
+                
+                # Crop the image back to its original dimensions, effectively zooming in and cropping the center
+                img = img.crop((left, top, right, bottom))
+                
+                pil_images.append(img)
+
+
+            # Redimensionar cada imagen a las dimensiones especificadas (after zoom/crop)
             resized_images = [
                 img.resize((width, height), Image.Resampling.LANCZOS) for img in pil_images
             ]
